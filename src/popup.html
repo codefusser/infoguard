@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>InfoGuard</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <h1 class="logo">🛡️ InfoGuard</h1>
+      <button id="settingsBtn" class="settings-btn" title="Settings">⚙️</button>
+    </div>
+
+    <!-- Auth Section -->
+    <div id="authSection" class="section hidden">
+      <h2>Sign in to Google</h2>
+      <p class="info-text">InfoGuard requires Google authentication to access Gemini AI analysis.</p>
+      <button id="googleSignInBtn" class="btn btn-primary">Sign in with Google</button>
+      <button id="googleSignOutBtn" class="btn btn-secondary hidden">Sign Out</button>
+    </div>
+
+    <!-- Main Content Section -->
+    <div id="mainSection" class="section hidden">
+      <!-- Current Tab Analysis -->
+      <div class="analysis-section">
+        <h2>Analyze Current Page</h2>
+        <p class="info-text">Analyze images and videos on this page for authenticity.</p>
+        
+        <div class="controls">
+          <button id="analyzePageBtn" class="btn btn-primary">Scan Page</button>
+          <button id="analyzeImageBtn" class="btn btn-secondary">Analyze Selected Image</button>
+          <button id="clearBadgesBtn" class="btn btn-secondary">Clear Badges</button>
+        </div>
+      </div>
+
+      <!-- Analysis Results -->
+      <div id="resultsSection" class="results-section hidden">
+        <h3>Analysis Results</h3>
+        
+        <div id="loadingIndicator" class="loading hidden">
+          <div class="spinner"></div>
+          <p>Analyzing media with Gemini AI...</p>
+        </div>
+
+        <div id="resultsContent" class="results-content"></div>
+      </div>
+
+      <!-- Media Detection -->
+      <div id="mediaSection" class="media-section hidden">
+        <h3>Detected Media</h3>
+        <div id="mediaList" class="media-list"></div>
+      </div>
+
+      <!-- User Status -->
+      <div class="user-status">
+        <p id="userInfo" class="text-small"></p>
+      </div>
+    </div>
+
+    <!-- Error Section -->
+    <div id="errorSection" class="section hidden">
+      <div class="error-message">
+        <p id="errorText"></p>
+        <button id="errorRetryBtn" class="btn btn-primary">Retry</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

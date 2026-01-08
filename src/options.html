@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>InfoGuard - Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <h1>🛡️ InfoGuard Settings</h1>
+      <p class="subtitle">Configure your truth verification preferences</p>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="account">Account</button>
+      <button class="tab-btn" data-tab="api">API Settings</button>
+      <button class="tab-btn" data-tab="analysis">Analysis</button>
+      <button class="tab-btn" data-tab="about">About</button>
+    </div>
+
+    <!-- Tab Contents -->
+    <div class="tab-content">
+      <!-- Account Tab -->
+      <div id="account" class="tab-pane active">
+        <div class="settings-section">
+          <h2>Google Account</h2>
+          <p class="description">Sign in with your Google account to enable Gemini AI analysis.</p>
+
+          <div class="account-status">
+            <div id="accountStatusBox" class="status-box">
+              <p id="accountStatus" class="status-text">Not signed in</p>
+              <button id="signInBtn" class="btn btn-primary">Sign In with Google</button>
+              <button id="signOutBtn" class="btn btn-secondary hidden">Sign Out</button>
+            </div>
+          </div>
+
+          <div class="info-box">
+            <h3>Why we need Google Sign-in:</h3>
+            <ul>
+              <li>Access to Gemini 3 AI for advanced analysis</li>
+              <li>Safe and secure authentication</li>
+              <li>No password storage - OAuth 2.0 token only</li>
+              <li>Sync settings across devices</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- API Settings Tab -->
+      <div id="api" class="tab-pane">
+        <div class="settings-section">
+          <h2>Gemini API Key</h2>
+          <p class="description">Configure your Gemini API key for analysis (optional - use Google Sign-in instead).</p>
+
+          <div class="form-group">
+            <label for="apiKeyInput">API Key:</label>
+            <input
+              type="password"
+              id="apiKeyInput"
+              class="input-field"
+              placeholder="sk-..."
+              autocomplete="off"
+            />
+            <p class="help-text">Get your API key from <a href="https://ai.google.dev" target="_blank">Google AI Studio</a></p>
+          </div>
+
+          <div class="button-group">
+            <button id="saveApiKeyBtn" class="btn btn-primary">Save API Key</button>
+            <button id="clearApiKeyBtn" class="btn btn-secondary">Clear API Key</button>
+          </div>
+
+          <div id="apiStatusMessage" class="message hidden"></div>
+        </div>
+      </div>
+
+      <!-- Analysis Settings Tab -->
+      <div id="analysis" class="tab-pane">
+        <div class="settings-section">
+          <h2>Analysis Preferences</h2>
+
+          <div class="setting-item">
+            <label class="checkbox-label">
+              <input type="checkbox" id="autoAnalyzeToggle" checked />
+              <span>Auto-analyze media on social media sites</span>
+            </label>
+            <p class="help-text">Automatically detect and analyze images/videos when visiting social media platforms.</p>
+          </div>
+
+          <div class="setting-item">
+            <label class="checkbox-label">
+              <input type="checkbox" id="notificationsToggle" checked />
+              <span>Enable notifications for suspicious content</span>
+            </label>
+            <p class="help-text">Get alerts when potentially fake or manipulated content is detected.</p>
+          </div>
+
+          <div class="setting-item">
+            <label class="checkbox-label">
+              <input type="checkbox" id="databaseCheckToggle" checked />
+              <span>Cross-reference with fact-checking databases</span>
+            </label>
+            <p class="help-text">Check claims against Snopes, FactCheck.org, and Full Fact.</p>
+          </div>
+
+          <div class="setting-item">
+            <label for="confidenceThreshold">Confidence Threshold:</label>
+            <div class="slider-group">
+              <input
+                type="range"
+                id="confidenceThreshold"
+                min="0"
+                max="100"
+                value="50"
+                class="slider"
+              />
+              <span id="thresholdValue">50%</span>
+            </div>
+            <p class="help-text">Only flag content below this confidence level as suspicious.</p>
+          </div>
+
+          <h3>Trusted Sources</h3>
+          <div class="trusted-sources">
+            <div class="source-item">
+              <input type="checkbox" checked disabled />
+              <label>Snopes</label>
+            </div>
+            <div class="source-item">
+              <input type="checkbox" checked disabled />
+              <label>FactCheck.org</label>
+            </div>
+            <div class="source-item">
+              <input type="checkbox" checked disabled />
+              <label>Full Fact</label>
+            </div>
+          </div>
+
+          <button id="saveAnalysisBtn" class="btn btn-primary">Save Preferences</button>
+          <div id="analysisStatusMessage" class="message hidden"></div>
+        </div>
+      </div>
+
+      <!-- About Tab -->
+      <div id="about" class="tab-pane">
+        <div class="settings-section">
+          <h2>About Vibe Guard</h2>
+
+          <div class="info-box">
+            <h3>Version</h3>
+            <p>1.0.0</p>
+
+            <h3>What is Vibe Guard?</h3>
+            <p>
+              Vibe Guard is a browser extension that uses Gemini 3's Advanced Visual Reasoning
+              capabilities to detect deepfakes and AI-generated content in real-time.
+            </p>
+
+            <h3>How it Works</h3>
+            <ol>
+              <li>Analyzes images and videos on social media feeds</li>
+              <li>Uses Gemini AI to identify visual artifacts and inconsistencies</li>
+              <li>Cross-references claims with trusted fact-checking databases</li>
+              <li>Provides a credibility score from 0-100%</li>
+            </ol>
+
+            <h3>Privacy</h3>
+            <p>
+              Your privacy is important to us. We do not store or share your media analysis results
+              beyond what's necessary for analysis. All processing is done securely.
+            </p>
+
+            <h3>Support</h3>
+            <p>
+              Found an issue? Have feedback?
+              <a href="https://github.com/yourusername/infoguard" target="_blank">Report on GitHub</a>
+            </p>
+
+            <h3>License</h3>
+            <p>MIT License - Free and Open Source</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <p>&copy; 2026 InfoGuard. Protecting truth online.</p>
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
