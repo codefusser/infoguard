@@ -8,10 +8,16 @@
     "scripting",
     "storage",
     "tabs",
-    "webRequest",
-    "contextMenus"
+    "contextMenus",
+    "identity"
   ],
   "host_permissions": [
+    "https://www.googleapis.com/*",
+    "https://generativelanguage.googleapis.com/*",
+    "https://snopes.com/*",
+    "https://factcheck.org/*",
+    "https://fullfact.org/*",
+    "https://politifact.com/*",
     "<all_urls>"
   ],
   "action": {
@@ -19,7 +25,8 @@
     "default_title": "InfoGuard - Verify Content"
   },
   "background": {
-    "service_worker": "src/background.js"
+    "service_worker": "src/background.js",
+    "type": "module"
   },
   "content_scripts": [
     {
@@ -27,6 +34,7 @@
         "<all_urls>"
       ],
       "js": [
+        "src/config.js",
         "src/content.js"
       ],
       "run_at": "document_end"
@@ -47,5 +55,8 @@
         "<all_urls>"
       ]
     }
-  ]
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https:; font-src 'self'; connect-src 'self' https://www.googleapis.com https://generativelanguage.googleapis.com https://snopes.com https://factcheck.org https://fullfact.org https://politifact.com https://accounts.google.com;"
+  }
 }

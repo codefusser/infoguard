@@ -1,11 +1,12 @@
 // Popup Script
-const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID_HERE';
-const GEMINI_API_KEY = 'YOUR_GEMINI_API_KEY_HERE';
 
 class InfoGuardPopup {
   constructor() {
     this.user = null;
     this.isAnalyzing = false;
+    this.oauthManager = oauthManager;
+    this.logger = logger;
+    this.errorHandler = errorHandler;
     this.initializeElements();
     this.attachEventListeners();
     this.checkAuthStatus();
@@ -43,7 +44,6 @@ class InfoGuardPopup {
   attachEventListeners() {
     this.googleSignInBtn.addEventListener('click', () => this.handleGoogleSignIn());
     this.googleSignOutBtn.addEventListener('click', () => this.handleGoogleSignOut());
-    // Overlay page on demand: request content script to run analysis and draw badges
     this.analyzePageBtn.addEventListener('click', () => this.requestPageOverlay());
     this.analyzeImageBtn.addEventListener('click', () => this.analyzeSelectedImage());
     this.clearBadgesBtn.addEventListener('click', () => this.clearBadgesOnPage());
@@ -53,19 +53,22 @@ class InfoGuardPopup {
 
   async checkAuthStatus() {
     try {
-      const result = await chrome.storage.local.get(['userEmail', 'googleToken', 'geminiKey']);
-      
-      if (result.userEmail && result.googleToken) {
+      const token = await this.oauthManager.getStoredToken();
+      const result = await chrome.storage.local.get([CONFIG.STORAGE_KEYS.USER_EMAIL]);
+      const userEmail = result[CONFIG.STORAGE_KEYS.USER_EMAIL];
+
+      if (token && userEmail) {
         this.user = {
-          email: result.userEmail,
-          token: result.googleToken
+          email: userEmail,
+          token: token
         };
         this.showMainSection();
+        this.logger.info('Popup', 'User authenticated', { email: userEmail });
       } else {
         this.showAuthSection();
       }
     } catch (error) {
-      console.error('Auth check failed:', error);
+      this.logger.error('Popup', 'Auth check failed', error);
       this.showAuthSection();
     }
   }
@@ -75,38 +78,41 @@ class InfoGuardPopup {
     this.showLoading('Signing in with Google...');
 
     try {
-      // In a real implementation, you would use chrome.identity.launchWebAuthFlow
-      // For now, we'll create a popup window for OAuth
-      const authUrl = this.getGoogleAuthUrl();
-      
-      const authWindow = await chrome.windows.create({
-        url: authUrl,
-        type: 'popup',
-        width: 500,
-        height: 600
+      // Get Client ID from storage or use default
+      const result = await chrome.storage.local.get([CONFIG.STORAGE_KEYS.GOOGLE_CLIENT_ID]);
+      const clientId = result[CONFIG.STORAGE_KEYS.GOOGLE_CLIENT_ID] || CONFIG.OAUTH.CLIENT_ID;
+
+      // Launch OAuth flow
+      const authResult = await this.oauthManager.launchAuthFlow(clientId);
+
+      if (!authResult.accessToken) {
+        throw new Error('No access token received');
+      }
+
+      // Get user profile info
+      const profile = await this.oauthManager.getUserProfile(authResult.accessToken);
+
+      // Save authentication data
+      await chrome.storage.local.set({
+        [CONFIG.STORAGE_KEYS.USER_EMAIL]: profile.email,
+        [CONFIG.STORAGE_KEYS.GOOGLE_TOKEN]: authResult.accessToken
       });
 
-      // Listen for message from auth page
-      const token = await this.waitForAuthToken();
-      
-      if (token) {
-        // Store the token
-        await chrome.storage.local.set({
-          userEmail: 'user@gmail.com', // Parse from token
-          googleToken: token,
-          geminiKey: GEMINI_API_KEY
-        });
+      // Save token with expiry
+      await this.oauthManager.saveToken(authResult.accessToken, authResult.expiresIn);
 
-        this.user = {
-          email: 'user@gmail.com',
-          token: token
-        };
+      this.user = {
+        email: profile.email,
+        token: authResult.accessToken
+      };
 
-        this.showMainSection();
-      }
+      this.logger.info('Popup', 'Google sign-in successful', { email: profile.email });
+      this.hideLoading();
+      this.showMainSection();
     } catch (error) {
-      console.error('Sign in error:', error);
-      this.showError('Failed to sign in. Please try again.');
+      this.logger.error('Popup', 'Sign in error', error);
+      const message = this.errorHandler.getUserMessage(error, 'Google Sign-In');
+      this.showError(message);
     } finally {
       this.googleSignInBtn.disabled = false;
     }
@@ -114,40 +120,16 @@ class InfoGuardPopup {
 
   async handleGoogleSignOut() {
     try {
-      await chrome.storage.local.remove(['userEmail', 'googleToken']);
+      this.googleSignOutBtn.disabled = true;
+      await this.oauthManager.clearAuth();
       this.user = null;
+      this.logger.info('Popup', 'User signed out');
       this.showAuthSection();
     } catch (error) {
-      console.error('Sign out error:', error);
-      this.showError('Failed to sign out.');
-    }
-  }
-
-  async analyzeCurrentPage() {
-    if (this.isAnalyzing) return;
-
-    this.isAnalyzing = true;
-    this.analyzePageBtn.disabled = true;
-    this.showLoading('Scanning page for media...');
-
-    try {
-      // Get current tab
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-
-      // Send overlay request to content script which will draw badges
-      const response = await chrome.tabs.sendMessage(tab.id, { action: 'overlayPage' });
-      if (response && typeof response.mediaCount !== 'undefined') {
-        if (response.mediaCount === 0) this.showError('No images or videos found on this page.');
-        else this.hideLoading();
-      } else {
-        this.showError('Failed to request page overlay.');
-      }
-    } catch (error) {
-      console.error('Page analysis error:', error);
-      this.showError('Failed to analyze page. Make sure you\'re on a web page.');
+      this.logger.error('Popup', 'Sign out error', error);
+      this.showError('Failed to sign out. Please try again.');
     } finally {
-      this.isAnalyzing = false;
-      this.analyzePageBtn.disabled = false;
+      this.googleSignOutBtn.disabled = false;
     }
   }
 
@@ -155,20 +137,31 @@ class InfoGuardPopup {
     if (this.isAnalyzing) return;
     this.isAnalyzing = true;
     this.analyzePageBtn.disabled = true;
-    this.showLoading('Requesting page overlay...');
+    this.showLoading('Scanning page for media...');
 
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+      if (!tab || !tab.id) {
+        throw new Error('No active tab found');
+      }
+
       const response = await chrome.tabs.sendMessage(tab.id, { action: 'overlayPage' });
+
       if (response && typeof response.mediaCount !== 'undefined') {
-        if (response.mediaCount === 0) this.showError('No images or videos found on this page.');
-        else this.hideLoading();
+        if (response.mediaCount === 0) {
+          this.showError('No images or videos found on this page.');
+        } else {
+          this.hideLoading();
+          this.logger.info('Popup', 'Page overlay requested', { mediaCount: response.mediaCount });
+        }
       } else {
         this.showError('Failed to request page overlay.');
       }
-    } catch (err) {
-      console.error('Overlay request failed:', err);
-      this.showError('Failed to request overlay.');
+    } catch (error) {
+      this.logger.error('Popup', 'Overlay request failed', error);
+      const message = this.errorHandler.getUserMessage(error, 'Page Analysis');
+      this.showError(message);
     } finally {
       this.isAnalyzing = false;
       this.analyzePageBtn.disabled = false;
@@ -186,49 +179,33 @@ class InfoGuardPopup {
       }
 
       this.hideLoading();
+      this.logger.info('Popup', 'Media analysis completed', { count: mediaList.length });
     } catch (error) {
-      console.error('Analysis error:', error);
-      this.showError('Failed to analyze media. Please try again.');
+      this.logger.error('Popup', 'Analysis error', error);
+      const message = this.errorHandler.getUserMessage(error, 'Media Analysis');
+      this.showError(message);
     }
   }
 
   async analyzeWithGemini(media) {
-    // This would call the background script which handles Gemini API
     return new Promise((resolve, reject) => {
-      chrome.runtime.sendMessage({
-        action: 'analyzeMedia',
-        media: media,
-        token: this.user.token
-      }, (response) => {
-        if (response && response.success) {
-          resolve(response.data);
-        } else {
-          reject(new Error(response?.error || 'Analysis failed'));
+      chrome.runtime.sendMessage(
+        {
+          action: 'analyzeMedia',
+          media: media,
+          token: this.user.token
+        },
+        (response) => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else if (response && response.success) {
+            resolve(response.data);
+          } else {
+            reject(new Error(response?.error || 'Analysis failed'));
+          }
         }
-      });
+      );
     });
-  }
-
-  displayMediaList(mediaList) {
-    this.mediaList.innerHTML = '';
-    mediaList.forEach((media, index) => {
-      const mediaItem = document.createElement('div');
-      mediaItem.className = 'media-item';
-      
-      if (media.type === 'image') {
-        mediaItem.innerHTML = `<img src="${media.src}" alt="Media ${index + 1}">`;
-      } else if (media.type === 'video') {
-        mediaItem.innerHTML = `<video><source src="${media.src}"></video>`;
-      }
-
-      mediaItem.addEventListener('click', () => {
-        this.analyzeMedia([media]);
-      });
-
-      this.mediaList.appendChild(mediaItem);
-    });
-
-    this.mediaSection.classList.remove('hidden');
   }
 
   displayResult(result) {
@@ -236,13 +213,13 @@ class InfoGuardPopup {
     resultCard.className = 'result-card';
 
     const scorePercentage = Math.round(result.credibilityScore * 100);
-    const scoreColor = scorePercentage > 70 ? '#6bcf7f' : scorePercentage > 40 ? '#ffd93d' : '#ff6b6b';
+    const scoreColor = scorePercentage > 70 ? CONFIG.COLORS.HIGH : scorePercentage > 40 ? CONFIG.COLORS.MEDIUM : CONFIG.COLORS.LOW;
 
     resultCard.innerHTML = `
       <h4>${result.mediaType.toUpperCase()} Analysis</h4>
       <div class="credibility-score">
         <div class="score-bar">
-          <div class="score-fill" style="width: ${scorePercentage}%; background: linear-gradient(90deg, #ff6b6b 0%, #ffd93d 50%, #6bcf7f 100%);"></div>
+          <div class="score-fill" style="width: ${scorePercentage}%; background: linear-gradient(90deg, ${CONFIG.COLORS.LOW} 0%, ${CONFIG.COLORS.MEDIUM} 50%, ${CONFIG.COLORS.HIGH} 100%);"></div>
         </div>
         <span class="score-value" style="color: ${scoreColor};">${scorePercentage}%</span>
       </div>
@@ -261,7 +238,10 @@ class InfoGuardPopup {
   }
 
   showLoading(message = 'Processing...') {
-    this.loadingIndicator.querySelector('p').textContent = message;
+    const messageElement = this.loadingIndicator.querySelector('p');
+    if (messageElement) {
+      messageElement.textContent = message;
+    }
     this.loadingIndicator.classList.remove('hidden');
   }
 
@@ -293,27 +273,44 @@ class InfoGuardPopup {
   }
 
   async analyzeSelectedImage() {
-    // This would open a dialog to select an image from the page
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    
-    chrome.tabs.sendMessage(tab.id, {
-      action: 'selectImage'
-    });
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+      if (!tab || !tab.id) {
+        throw new Error('No active tab found');
+      }
+
+      chrome.tabs.sendMessage(tab.id, {
+        action: 'selectImage'
+      });
+
+      this.logger.info('Popup', 'Image selection mode activated');
+    } catch (error) {
+      this.logger.error('Popup', 'Image selection failed', error);
+      this.showError('Failed to enable image selection.');
+    }
   }
 
   async clearBadgesOnPage() {
     try {
       this.clearBadgesBtn.disabled = true;
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+      if (!tab || !tab.id) {
+        throw new Error('No active tab found');
+      }
+
       const response = await chrome.tabs.sendMessage(tab.id, { action: 'clearBadges' });
+
       if (response && response.cleared) {
         this.showLoading('Cleared badges on page');
         setTimeout(() => this.hideLoading(), 800);
+        this.logger.info('Popup', 'Badges cleared');
       } else {
         this.showError('Failed to clear badges on page.');
       }
-    } catch (err) {
-      console.error('Clear badges failed:', err);
+    } catch (error) {
+      this.logger.error('Popup', 'Clear badges failed', error);
       this.showError('Failed to clear badges.');
     } finally {
       this.clearBadgesBtn.disabled = false;
@@ -323,44 +320,13 @@ class InfoGuardPopup {
   openSettings() {
     chrome.runtime.openOptionsPage();
   }
-
-  getGoogleAuthUrl() {
-    const params = new URLSearchParams({
-      client_id: GOOGLE_CLIENT_ID,
-      redirect_uri: chrome.identity.getRedirectURL(),
-      response_type: 'token',
-      scope: 'email profile',
-      access_type: 'offline'
-    });
-
-    return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
-  }
-
-  waitForAuthToken() {
-    return new Promise((resolve) => {
-      const listener = (request, sender, sendResponse) => {
-        if (request.action === 'authToken') {
-          chrome.runtime.onMessage.removeListener(listener);
-          resolve(request.token);
-        }
-      };
-
-      chrome.runtime.onMessage.addListener(listener);
-      
-      // Timeout after 5 minutes
-      setTimeout(() => {
-        chrome.runtime.onMessage.removeListener(listener);
-        resolve(null);
-      }, 5 * 60 * 1000);
-    });
-  }
 }
 
 // Initialize popup when DOM is ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
-    new VibeGuardPopup();
+    new InfoGuardPopup();
   });
 } else {
-  new VibeGuardPopup();
+  new InfoGuardPopup();
 }

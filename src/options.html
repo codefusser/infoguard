@@ -17,7 +17,7 @@
     <!-- Navigation Tabs -->
     <div class="tabs">
       <button class="tab-btn active" data-tab="account">Account</button>
-      <button class="tab-btn" data-tab="api">API Settings</button>
+      <button class="tab-btn" data-tab="api">API Setup</button>
       <button class="tab-btn" data-tab="analysis">Analysis</button>
       <button class="tab-btn" data-tab="about">About</button>
     </div>
@@ -32,7 +32,7 @@
 
           <div class="account-status">
             <div id="accountStatusBox" class="status-box">
-              <p id="accountStatus" class="status-text">Not signed in</p>
+              <p id="accountStatus" class="status-text">✗ Not signed in</p>
               <button id="signInBtn" class="btn btn-primary">Sign In with Google</button>
               <button id="signOutBtn" class="btn btn-secondary hidden">Sign Out</button>
             </div>
@@ -41,10 +41,10 @@
           <div class="info-box">
             <h3>Why we need Google Sign-in:</h3>
             <ul>
-              <li>Access to Gemini 3 AI for advanced analysis</li>
-              <li>Safe and secure authentication</li>
-              <li>No password storage - OAuth 2.0 token only</li>
-              <li>Sync settings across devices</li>
+              <li>Access to Gemini 2.0 Flash AI for advanced analysis</li>
+              <li>Safe and secure OAuth 2.0 authentication</li>
+              <li>No password storage - token-based only</li>
+              <li>Automatic settings sync</li>
             </ul>
           </div>
         </div>
@@ -53,27 +53,46 @@
       <!-- API Settings Tab -->
       <div id="api" class="tab-pane">
         <div class="settings-section">
-          <h2>Gemini API Key</h2>
-          <p class="description">Configure your Gemini API key for analysis (optional - use Google Sign-in instead).</p>
+          <h2>API Configuration</h2>
+          <p class="description">Configure your Google APIs for authentication and analysis.</p>
 
+          <!-- Google Client ID -->
           <div class="form-group">
+            <h3>Google OAuth Client ID</h3>
+            <label for="googleClientIdInput">Client ID:</label>
+            <input
+              type="text"
+              id="googleClientIdInput"
+              class="input-field"
+              placeholder="YOUR_CLIENT_ID.apps.googleusercontent.com"
+              autocomplete="off"
+            />
+            <p class="help-text">Get your Client ID from <a href="https://console.cloud.google.com" target="_blank">Google Cloud Console</a></p>
+            <div class="button-group">
+              <button id="saveClientIdBtn" class="btn btn-primary">Save Client ID</button>
+            </div>
+            <div id="clientIdStatusMessage" class="message hidden"></div>
+          </div>
+
+          <!-- Gemini API Key -->
+          <div class="form-group">
+            <h3>Gemini API Key (Alternative)</h3>
+            <p class="help-text">Optional: Use API key instead of OAuth (not recommended for production)</p>
             <label for="apiKeyInput">API Key:</label>
             <input
               type="password"
               id="apiKeyInput"
               class="input-field"
-              placeholder="sk-..."
+              placeholder="AIzaSy..."
               autocomplete="off"
             />
             <p class="help-text">Get your API key from <a href="https://ai.google.dev" target="_blank">Google AI Studio</a></p>
+            <div class="button-group">
+              <button id="saveApiKeyBtn" class="btn btn-primary">Save API Key</button>
+              <button id="clearApiKeyBtn" class="btn btn-secondary">Clear API Key</button>
+            </div>
+            <div id="apiStatusMessage" class="message hidden"></div>
           </div>
-
-          <div class="button-group">
-            <button id="saveApiKeyBtn" class="btn btn-primary">Save API Key</button>
-            <button id="clearApiKeyBtn" class="btn btn-secondary">Clear API Key</button>
-          </div>
-
-          <div id="apiStatusMessage" class="message hidden"></div>
         </div>
       </div>
 
@@ -103,11 +122,11 @@
               <input type="checkbox" id="databaseCheckToggle" checked />
               <span>Cross-reference with fact-checking databases</span>
             </label>
-            <p class="help-text">Check claims against Snopes, FactCheck.org, and Full Fact.</p>
+            <p class="help-text">Check claims against Snopes, FactCheck.org, FullFact, and PolitiFact.</p>
           </div>
 
           <div class="setting-item">
-            <label for="confidenceThreshold">Confidence Threshold:</label>
+            <label for="confidenceThreshold">Credibility Threshold:</label>
             <div class="slider-group">
               <input
                 type="range"
@@ -119,14 +138,14 @@
               />
               <span id="thresholdValue">50%</span>
             </div>
-            <p class="help-text">Only flag content below this confidence level as suspicious.</p>
+            <p class="help-text">Flag content below this credibility percentage as suspicious.</p>
           </div>
 
-          <h3>Trusted Sources</h3>
+          <h3>Trusted Fact-Check Sources</h3>
           <div class="trusted-sources">
             <div class="source-item">
               <input type="checkbox" checked disabled />
-              <label>Snopes</label>
+              <label>Snopes.com</label>
             </div>
             <div class="source-item">
               <input type="checkbox" checked disabled />
@@ -134,7 +153,11 @@
             </div>
             <div class="source-item">
               <input type="checkbox" checked disabled />
-              <label>Full Fact</label>
+              <label>FullFact.org</label>
+            </div>
+            <div class="source-item">
+              <input type="checkbox" checked disabled />
+              <label>PolitiFact.com</label>
             </div>
           </div>
 
@@ -146,40 +169,47 @@
       <!-- About Tab -->
       <div id="about" class="tab-pane">
         <div class="settings-section">
-          <h2>About Vibe Guard</h2>
+          <h2>About InfoGuard</h2>
 
           <div class="info-box">
             <h3>Version</h3>
             <p>1.0.0</p>
 
-            <h3>What is Vibe Guard?</h3>
+            <h3>What is InfoGuard?</h3>
             <p>
-              Vibe Guard is a browser extension that uses Gemini 3's Advanced Visual Reasoning
-              capabilities to detect deepfakes and AI-generated content in real-time.
+              InfoGuard is a browser extension that uses Google's Gemini 2.0 Flash AI to detect deepfakes, 
+              AI-generated content, and media manipulation in real-time while you browse.
             </p>
 
             <h3>How it Works</h3>
             <ol>
-              <li>Analyzes images and videos on social media feeds</li>
-              <li>Uses Gemini AI to identify visual artifacts and inconsistencies</li>
+              <li>Detects images and videos on web pages and social media</li>
+              <li>Uses Gemini AI visual reasoning to identify artifacts and inconsistencies</li>
               <li>Cross-references claims with trusted fact-checking databases</li>
               <li>Provides a credibility score from 0-100%</li>
+              <li>Displays visual badges on media items for quick assessment</li>
             </ol>
 
-            <h3>Privacy</h3>
-            <p>
-              Your privacy is important to us. We do not store or share your media analysis results
-              beyond what's necessary for analysis. All processing is done securely.
-            </p>
+            <h3>Privacy & Security</h3>
+            <ul>
+              <li>All authentication uses OAuth 2.0 - your password is never stored</li>
+              <li>Media is sent to Google's secure API endpoints for analysis</li>
+              <li>Analysis results are not stored on our servers</li>
+              <li>You control what gets analyzed via the extension settings</li>
+              <li>Open source - audit our code on GitHub</li>
+            </ul>
 
-            <h3>Support</h3>
+            <h3>Support & Feedback</h3>
             <p>
-              Found an issue? Have feedback?
-              <a href="https://github.com/yourusername/infoguard" target="_blank">Report on GitHub</a>
+              Found an issue? Have a feature request?
+              <a href="https://github.com/codefusser/infoguard" target="_blank">Visit our GitHub repository</a>
             </p>
 
             <h3>License</h3>
-            <p>MIT License - Free and Open Source</p>
+            <p>MIT License - Free and Open Source Software</p>
+
+            <h3>Made with ❤️ for Truth</h3>
+            <p>InfoGuard is built to help you navigate the digital world with confidence.</p>
           </div>
         </div>
       </div>
@@ -191,6 +221,10 @@
     </div>
   </div>
 
+  <!-- Scripts in production order -->
+  <script src="config.js"></script>
+  <script src="utils.js"></script>
+  <script src="oauth.js"></script>
   <script src="options.js"></script>
 </body>
 </html>

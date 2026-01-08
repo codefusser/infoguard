@@ -189,7 +189,7 @@ class MediaDetector {
     if (existing) existing.remove();
 
     const panel = document.createElement('div');
-    panel.className = 'vibe-guard-result-panel';
+    panel.className = 'infoguard-result-panel';
     const pct = Math.round((result.credibilityScore || 0) * 100);
     panel.innerHTML = `
       <div style="font-weight:800;margin-bottom:6px">InfoGuard — ${pct}%</div>
@@ -256,12 +256,12 @@ class MediaDetector {
     // Add selection mode
     const style = document.createElement('style');
     style.textContent = `
-      img.vibe-guard-selectable {
+      img.infoguard-selectable {
         cursor: pointer;
         border: 2px dashed #667eea !important;
         opacity: 0.9;
       }
-      img.vibe-guard-selectable:hover {
+      img.infoguard-selectable:hover {
         border: 2px solid #667eea !important;
         opacity: 1;
       }
