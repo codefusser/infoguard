@@ -38,7 +38,10 @@ class OAuthManager {
    */
   async launchAuthFlow(clientId) {
     if (!clientId || clientId.includes('YOUR_')) {
-      throw new Error('Google Client ID is not configured. Please set it in extension options.');
+      throw new Error(
+        'Google Client ID is not configured. ' +
+        'Go to Settings > API Setup and enter your OAuth Client ID from Google Cloud Console.'
+      );
     }
 
     try {

@@ -82,6 +82,22 @@ class InfoGuardPopup {
       const result = await chrome.storage.local.get([CONFIG.STORAGE_KEYS.GOOGLE_CLIENT_ID]);
       const clientId = result[CONFIG.STORAGE_KEYS.GOOGLE_CLIENT_ID] || CONFIG.OAUTH.CLIENT_ID;
 
+      // Check if Client ID is configured
+      if (!clientId || clientId.includes('YOUR_')) {
+        this.hideLoading();
+        this.showError(
+          '⚙️ Setup Required: Please configure your Google Client ID in Settings first.\n\n' +
+          'Steps:\n' +
+          '1. Click the ⚙️ button (top right)\n' +
+          '2. Go to "API Setup" tab\n' +
+          '3. Enter your Google OAuth Client ID\n' +
+          '4. Click "Save Client ID"\n' +
+          '5. Return to try signing in again'
+        );
+        this.googleSignInBtn.disabled = false;
+        return;
+      }
+
       // Launch OAuth flow
       const authResult = await this.oauthManager.launchAuthFlow(clientId);
 
